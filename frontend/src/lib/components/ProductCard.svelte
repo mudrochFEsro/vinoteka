@@ -19,24 +19,24 @@
 	}
 </script>
 
-<div class="overflow-hidden rounded-lg bg-white shadow">
+<div class="overflow-hidden rounded-2xl bg-white shadow-sm transition-all duration-300 hover:shadow-lg dark:bg-[#1c1c1e] dark:shadow-[#000]/20">
 	{#if product.imageUrl}
 		<img src={product.imageUrl} alt={product.name} class="h-48 w-full object-cover" />
 	{:else}
-		<div class="flex h-48 items-center justify-center bg-gray-200">
-			<span class="text-gray-400">Bez obrazka</span>
+		<div class="flex h-48 items-center justify-center bg-gray-100 dark:bg-[#2c2c2e]">
+			<span class="text-gray-400 dark:text-gray-500">Bez obrazka</span>
 		</div>
 	{/if}
 	<div class="p-4">
-		<h3 class="text-lg font-semibold text-gray-900">{product.name}</h3>
-		<p class="mt-1 text-sm text-gray-500">{product.categoryName}</p>
-		<p class="mt-2 line-clamp-2 text-sm text-gray-600">{product.description}</p>
+		<h3 class="text-lg font-semibold text-gray-900 dark:text-white">{product.name}</h3>
+		<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{product.categoryName}</p>
+		<p class="mt-2 line-clamp-2 text-sm text-gray-600 dark:text-gray-300">{product.description}</p>
 		<div class="mt-4 flex items-center justify-between">
-			<span class="text-lg font-bold text-indigo-600">{product.price.toFixed(2)} EUR</span>
+			<span class="text-lg font-bold text-indigo-600 dark:text-indigo-400">{product.price.toFixed(2)} EUR</span>
 			<button
 				onclick={addToCart}
 				disabled={adding || product.stock === 0}
-				class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+				class="rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
 			>
 				{#if adding}
 					Pridavam...
@@ -48,7 +48,7 @@
 			</button>
 		</div>
 		{#if product.stock > 0 && product.stock <= 5}
-			<p class="mt-2 text-sm text-orange-600">Poslednych {product.stock} ks</p>
+			<p class="mt-2 text-sm text-orange-600 dark:text-orange-400">Poslednych {product.stock} ks</p>
 		{/if}
 	</div>
 </div>

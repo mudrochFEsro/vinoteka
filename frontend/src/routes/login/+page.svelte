@@ -26,18 +26,18 @@
 
 <div class="flex min-h-[80vh] items-center justify-center">
 	<div class="w-full max-w-md">
-		<div class="rounded-lg bg-white px-8 py-10 shadow-lg">
-			<h1 class="mb-8 text-center text-2xl font-bold text-gray-900">Prihlásenie</h1>
+		<div class="rounded-2xl bg-white px-8 py-10 shadow-lg transition-colors dark:bg-[#1c1c1e]">
+			<h1 class="mb-8 text-center text-2xl font-bold text-gray-900 dark:text-white">Prihlásenie</h1>
 
 			{#if error}
-				<div class="mb-6 rounded-md bg-red-50 p-4">
-					<p class="text-sm text-red-700">{error}</p>
+				<div class="mb-6 rounded-md bg-red-50 p-4 dark:bg-red-900/20">
+					<p class="text-sm text-red-700 dark:text-red-400">{error}</p>
 				</div>
 			{/if}
 
 			<form onsubmit={handleSubmit} class="space-y-6">
 				<div>
-					<label for="username" class="block text-sm font-medium text-gray-700">
+					<label for="username" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
 						Používateľské meno
 					</label>
 					<input
@@ -45,19 +45,19 @@
 						id="username"
 						bind:value={username}
 						required
-						class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+						class="mt-1 block w-full rounded-lg border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-[#3a3a3c] dark:bg-[#2c2c2e] dark:text-white dark:placeholder-gray-400"
 						placeholder="Zadajte používateľské meno"
 					/>
 				</div>
 
 				<div>
-					<label for="password" class="block text-sm font-medium text-gray-700">Heslo</label>
+					<label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Heslo</label>
 					<input
 						type="password"
 						id="password"
 						bind:value={password}
 						required
-						class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+						class="mt-1 block w-full rounded-lg border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-[#3a3a3c] dark:bg-[#2c2c2e] dark:text-white dark:placeholder-gray-400"
 						placeholder="Zadajte heslo"
 					/>
 				</div>
@@ -65,24 +65,24 @@
 				<button
 					type="submit"
 					disabled={loading}
-					class="w-full rounded-md bg-indigo-600 px-4 py-3 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
+					class="w-full rounded-full bg-indigo-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 dark:focus:ring-offset-[#1c1c1e]"
 				>
 					{loading ? 'Prihlasujem...' : 'Prihlásiť sa'}
 				</button>
 			</form>
 
 			<div class="mt-6 text-center">
-				<p class="text-sm text-gray-600">
+				<p class="text-sm text-gray-600 dark:text-gray-400">
 					Nemáte účet?
-					<a href="/register" class="font-medium text-indigo-600 hover:text-indigo-500">
+					<a href="/register" class="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
 						Zaregistrujte sa
 					</a>
 				</p>
 			</div>
 
-			<div class="mt-8 border-t border-gray-200 pt-6">
-				<p class="text-center text-xs text-gray-500">Testovacie účty:</p>
-				<div class="mt-2 space-y-1 text-center text-xs text-gray-500">
+			<div class="mt-8 border-t border-gray-200 pt-6 dark:border-[#3a3a3c]">
+				<p class="text-center text-xs text-gray-500 dark:text-gray-400">Testovacie účty:</p>
+				<div class="mt-2 space-y-1 text-center text-xs text-gray-500 dark:text-gray-400">
 					<p><span class="font-medium">Používateľ:</span> testuser / testuser</p>
 					<p><span class="font-medium">Admin:</span> admin / admin</p>
 				</div>

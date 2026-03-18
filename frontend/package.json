@@ -37,6 +37,7 @@
 		]
 	},
 	"dependencies": {
-		"keycloak-js": "^26.2.3"
+		"keycloak-js": "^26.2.3",
+		"melt": "^0.44.0"
 	}
 }

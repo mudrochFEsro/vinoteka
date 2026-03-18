@@ -62,52 +62,52 @@
 </script>
 
 <div>
-	<h1 class="mb-6 text-2xl font-bold text-gray-900">Moje objednavky</h1>
+	<h1 class="mb-6 text-2xl font-bold text-gray-900 dark:text-white">Moje objednavky</h1>
 
 	{#if createdOrderId}
-		<div class="mb-6 rounded-md bg-green-50 p-4">
-			<p class="text-green-700">Objednavka #{createdOrderId} bola uspesne vytvorena!</p>
+		<div class="mb-6 rounded-xl bg-green-50 p-4 dark:bg-green-900/20">
+			<p class="text-green-700 dark:text-green-400">Objednavka #{createdOrderId} bola uspesne vytvorena!</p>
 		</div>
 	{/if}
 
 	{#if !authStore.initialized || loading}
 		<div class="py-12 text-center">
-			<p class="text-gray-500">Nacitavam...</p>
+			<p class="text-gray-500 dark:text-gray-400">Nacitavam...</p>
 		</div>
 	{:else if !authStore.authenticated}
 		<div class="py-12 text-center">
-			<p class="text-gray-500">Pre zobrazenie objednavok sa musite prihlasit</p>
-			<a href="/login" class="mt-4 inline-block text-indigo-600 hover:text-indigo-700">
+			<p class="text-gray-500 dark:text-gray-400">Pre zobrazenie objednavok sa musite prihlasit</p>
+			<a href="/login" class="mt-4 inline-block text-indigo-600 hover:text-indigo-700 dark:text-indigo-400">
 				Prihlasit sa
 			</a>
 		</div>
 	{:else if error}
-		<div class="rounded-md bg-red-50 p-4">
-			<p class="text-red-700">{error}</p>
+		<div class="rounded-md bg-red-50 p-4 dark:bg-red-900/20">
+			<p class="text-red-700 dark:text-red-400">{error}</p>
 		</div>
 	{:else if allOrders.length === 0}
 		<div class="py-12 text-center">
-			<p class="text-gray-500">Zatial ziadne objednavky</p>
-			<a href="/" class="mt-4 inline-block text-indigo-600 hover:text-indigo-700">
+			<p class="text-gray-500 dark:text-gray-400">Zatial ziadne objednavky</p>
+			<a href="/" class="mt-4 inline-block text-indigo-600 hover:text-indigo-700 dark:text-indigo-400">
 				Prejst na produkty
 			</a>
 		</div>
 	{:else}
 		<div class="space-y-4">
 			{#each allOrders as order (order.id)}
-				<div class="overflow-hidden rounded-lg bg-white shadow hover:shadow-md transition-shadow">
+				<div class="overflow-hidden rounded-2xl bg-white shadow transition-shadow hover:shadow-md dark:bg-[#1c1c1e]">
 					<div class="flex items-center justify-between px-6 py-4">
 						<div class="flex items-center gap-6">
 							<div>
-								<span class="text-lg font-medium text-gray-900">Objednavka #{order.id}</span>
-								<p class="text-sm text-gray-500">{formatDate(order.createdAt)}</p>
+								<span class="text-lg font-medium text-gray-900 dark:text-white">Objednavka #{order.id}</span>
+								<p class="text-sm text-gray-500 dark:text-gray-400">{formatDate(order.createdAt)}</p>
 							</div>
-							<div class="text-sm text-gray-600">
+							<div class="text-sm text-gray-600 dark:text-gray-300">
 								{order.itemCount} {order.itemCount === 1 ? 'polozka' : order.itemCount < 5 ? 'polozky' : 'poloziek'}
 							</div>
 						</div>
 						<div class="flex items-center gap-4">
-							<span class="text-lg font-bold text-gray-900">
+							<span class="text-lg font-bold text-gray-900 dark:text-white">
 								{order.totalPrice.toFixed(2)} EUR
 							</span>
 							<span class="rounded-full px-3 py-1 text-sm font-medium {statusColors[order.status]}">

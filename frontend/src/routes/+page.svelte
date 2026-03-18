@@ -42,18 +42,18 @@
 </script>
 
 <div>
-	<h1 class="mb-6 text-2xl font-bold text-gray-900">Nase vina</h1>
+	<h1 class="mb-6 text-2xl font-bold text-gray-900 dark:text-white">Nase vina</h1>
 
 	<div class="mb-6 flex flex-col gap-4 sm:flex-row">
 		<input
 			type="text"
 			bind:value={search}
 			placeholder="Hladat produkty..."
-			class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+			class="flex-1 rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-[#3a3a3c] dark:bg-[#2c2c2e] dark:text-white dark:placeholder-gray-400"
 		/>
 		<select
 			bind:value={selectedCategory}
-			class="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+			class="rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-[#3a3a3c] dark:bg-[#2c2c2e] dark:text-white"
 		>
 			<option value={null}>Vsetky kategorie</option>
 			{#each allCategories as category (category.id)}
@@ -64,15 +64,15 @@
 
 	{#if loading}
 		<div class="py-12 text-center">
-			<p class="text-gray-500">Nacitavam produkty...</p>
+			<p class="text-gray-500 dark:text-gray-400">Nacitavam produkty...</p>
 		</div>
 	{:else if error}
-		<div class="rounded-md bg-red-50 p-4">
-			<p class="text-red-700">{error}</p>
+		<div class="rounded-md bg-red-50 p-4 dark:bg-red-900/20">
+			<p class="text-red-700 dark:text-red-400">{error}</p>
 		</div>
 	{:else if filteredProducts.length === 0}
 		<div class="py-12 text-center">
-			<p class="text-gray-500">Ziadne produkty</p>
+			<p class="text-gray-500 dark:text-gray-400">Ziadne produkty</p>
 		</div>
 	{:else}
 		<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
