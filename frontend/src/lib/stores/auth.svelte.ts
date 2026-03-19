@@ -38,6 +38,13 @@ class AuthStore {
 		this.admin = isAdmin();
 	}
 
+	// Force refresh from localStorage (used after server-side login)
+	refresh() {
+		initAuth();
+		this.update();
+		this.initialized = true;
+	}
+
 	async login(username: string, password: string): Promise<{ success: boolean; error?: string }> {
 		const result = await authLogin(username, password);
 		if (result.success) {
@@ -47,13 +54,12 @@ class AuthStore {
 	}
 
 	async register(
-		username: string,
 		email: string,
 		password: string,
 		firstName: string,
 		lastName: string
 	): Promise<{ success: boolean; error?: string }> {
-		return authRegister(username, email, password, firstName, lastName);
+		return authRegister(email, password, firstName, lastName);
 	}
 
 	logout() {

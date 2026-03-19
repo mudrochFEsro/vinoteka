@@ -117,7 +117,6 @@ export async function login(username: string, password: string): Promise<{ succe
 }
 
 export async function register(
-	username: string,
 	email: string,
 	password: string,
 	firstName: string,
@@ -144,7 +143,7 @@ export async function register(
 
 		const adminTokens = await adminTokenResponse.json();
 
-		// Create user
+		// Create user - use email as username
 		const createUserResponse = await fetch(
 			`${KEYCLOAK_URL}/admin/realms/${REALM}/users`,
 			{
@@ -154,7 +153,7 @@ export async function register(
 					'Authorization': `Bearer ${adminTokens.access_token}`
 				},
 				body: JSON.stringify({
-					username,
+					username: email,
 					email,
 					firstName,
 					lastName,
@@ -172,7 +171,7 @@ export async function register(
 
 		if (!createUserResponse.ok) {
 			if (createUserResponse.status === 409) {
-				return { success: false, error: 'Používateľ s týmto menom alebo emailom už existuje' };
+				return { success: false, error: 'Používateľ s týmto emailom už existuje' };
 			}
 			const error = await createUserResponse.json();
 			return { success: false, error: error.errorMessage || 'Registrácia zlyhala' };
@@ -180,7 +179,7 @@ export async function register(
 
 		// Get user ID to assign role
 		const usersResponse = await fetch(
-			`${KEYCLOAK_URL}/admin/realms/${REALM}/users?username=${username}`,
+			`${KEYCLOAK_URL}/admin/realms/${REALM}/users?email=${encodeURIComponent(email)}`,
 			{
 				headers: {
 					'Authorization': `Bearer ${adminTokens.access_token}`
