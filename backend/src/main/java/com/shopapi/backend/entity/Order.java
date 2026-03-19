@@ -83,6 +83,28 @@ public class Order {
     @Column(name = "ic_dph", length = 20)
     private String icDph;
 
+    // Delivery
+    @Enumerated(EnumType.STRING)
+    @Column(name = "delivery_method", length = 30)
+    @Builder.Default
+    private DeliveryMethod deliveryMethod = DeliveryMethod.PACKETA_COURIER;
+
+    @Column(name = "packeta_point_id", length = 20)
+    private String packetaPointId;
+
+    @Column(name = "packeta_point_name", length = 255)
+    private String packetaPointName;
+
+    @Column(name = "delivery_price", precision = 10, scale = 2)
+    @Builder.Default
+    private BigDecimal deliveryPrice = BigDecimal.ZERO;
+
+    // Payment
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_method", length = 30)
+    @Builder.Default
+    private PaymentMethod paymentMethod = PaymentMethod.CASH_ON_DELIVERY;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
     @Builder.Default

@@ -180,6 +180,28 @@ public class OrderService {
             }
         }
 
+        // Validate delivery method
+        var deliveryMethod = request.deliveryMethod();
+        if (deliveryMethod == DeliveryMethod.PACKETA_PICKUP) {
+            if (request.packetaPointId() == null || request.packetaPointId().isBlank()) {
+                throw new IllegalArgumentException("Vyberte vydajne miesto");
+            }
+        } else {
+            // Courier delivery requires address
+            if (request.street() == null || request.street().isBlank()) {
+                throw new IllegalArgumentException("Ulica je povinna pre dorucenie kurierom");
+            }
+            if (request.city() == null || request.city().isBlank()) {
+                throw new IllegalArgumentException("Mesto je povinne pre dorucenie kurierom");
+            }
+            if (request.postalCode() == null || request.postalCode().isBlank()) {
+                throw new IllegalArgumentException("PSC je povinne pre dorucenie kurierom");
+            }
+        }
+
+        // Calculate delivery price
+        BigDecimal deliveryPrice = calculateDeliveryPrice(deliveryMethod);
+
         var order = Order.builder()
                 .user(userOptional.orElse(null))
                 .guestEmail(userOptional.isEmpty() ? request.email() : null)
@@ -192,14 +214,19 @@ public class OrderService {
                 .houseNumber(request.houseNumber())
                 .city(request.city())
                 .postalCode(request.postalCode())
-                .country(request.country())
+                .country(request.country() != null ? request.country() : "SK")
                 .isCompany(request.isCompany())
                 .companyName(request.isCompany() ? request.companyName() : null)
                 .ico(request.isCompany() ? request.ico() : null)
                 .dic(request.isCompany() ? request.dic() : null)
                 .icDph(request.isCompany() ? request.icDph() : null)
+                .deliveryMethod(deliveryMethod)
+                .packetaPointId(request.packetaPointId())
+                .packetaPointName(request.packetaPointName())
+                .deliveryPrice(deliveryPrice)
+                .paymentMethod(request.paymentMethod())
                 .status(OrderStatus.PENDING)
-                .totalPrice(totalPrice)
+                .totalPrice(totalPrice.add(deliveryPrice))
                 .orderItems(new ArrayList<>())
                 .build();
 
@@ -246,6 +273,13 @@ public class OrderService {
 
     private BigDecimal calculateItemTotal(Product product, int quantity) {
         return product.getPrice().multiply(BigDecimal.valueOf(quantity));
+    }
+
+    private BigDecimal calculateDeliveryPrice(DeliveryMethod method) {
+        return switch (method) {
+            case PACKETA_COURIER -> new BigDecimal("3.99");
+            case PACKETA_PICKUP -> new BigDecimal("2.49");
+        };
     }
 
     private OrderItem createOrderItem(Product product, int quantity) {

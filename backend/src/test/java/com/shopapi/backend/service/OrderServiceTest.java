@@ -4,6 +4,7 @@ import com.shopapi.backend.dto.CheckoutRequest;
 import com.shopapi.backend.dto.OrderDTO;
 import com.shopapi.backend.dto.UpdateOrderStatusRequest;
 import com.shopapi.backend.entity.*;
+import java.math.BigDecimal;
 import com.shopapi.backend.exception.EmptyCartException;
 import com.shopapi.backend.exception.InsufficientStockException;
 import com.shopapi.backend.exception.OrderNotFoundException;
@@ -236,6 +237,11 @@ class OrderServiceTest {
     // ==================== CHECKOUT TESTS ====================
 
     private CheckoutRequest createCheckoutRequest(boolean isCompany, List<CheckoutRequest.CheckoutItem> items) {
+        return createCheckoutRequest(isCompany, items, DeliveryMethod.PACKETA_COURIER, PaymentMethod.CASH_ON_DELIVERY);
+    }
+
+    private CheckoutRequest createCheckoutRequest(boolean isCompany, List<CheckoutRequest.CheckoutItem> items,
+                                                   DeliveryMethod deliveryMethod, PaymentMethod paymentMethod) {
         return new CheckoutRequest(
                 "test@example.com",
                 "Jan",
@@ -251,6 +257,10 @@ class OrderServiceTest {
                 isCompany ? "12345678" : null,
                 isCompany ? "2012345678" : null,
                 isCompany ? "SK2012345678" : null,
+                deliveryMethod,
+                deliveryMethod == DeliveryMethod.PACKETA_PICKUP ? "12345" : null,
+                deliveryMethod == DeliveryMethod.PACKETA_PICKUP ? "Test Point" : null,
+                paymentMethod,
                 items
         );
     }
@@ -286,6 +296,9 @@ class OrderServiceTest {
         assertThat(result.street()).isEqualTo("Hlavna");
         assertThat(result.city()).isEqualTo("Bratislava");
         assertThat(result.isCompany()).isFalse();
+        assertThat(result.deliveryMethod()).isEqualTo(DeliveryMethod.PACKETA_COURIER);
+        assertThat(result.deliveryPrice()).isEqualByComparingTo(new BigDecimal("3.99"));
+        assertThat(result.paymentMethod()).isEqualTo(PaymentMethod.CASH_ON_DELIVERY);
         assertThat(testProduct.getStock()).isEqualTo(8);
         verify(cartRepository).save(testCart);
     }
@@ -352,7 +365,8 @@ class OrderServiceTest {
         CheckoutRequest request = new CheckoutRequest(
                 "test@example.com", "Jan", "Novak", null,
                 "Hlavna", "123", "Bratislava", "821 07", "SK",
-                true, null, "12345678", null, null, items
+                true, null, "12345678", null, null,
+                DeliveryMethod.PACKETA_COURIER, null, null, PaymentMethod.CASH_ON_DELIVERY, items
         );
 
         when(userService.getCurrentUserOptional()).thenReturn(Optional.empty());
@@ -372,7 +386,8 @@ class OrderServiceTest {
         CheckoutRequest request = new CheckoutRequest(
                 "test@example.com", "Jan", "Novak", null,
                 "Hlavna", "123", "Bratislava", "821 07", "SK",
-                true, "Test s.r.o.", null, null, null, items
+                true, "Test s.r.o.", null, null, null,
+                DeliveryMethod.PACKETA_COURIER, null, null, PaymentMethod.CASH_ON_DELIVERY, items
         );
 
         when(userService.getCurrentUserOptional()).thenReturn(Optional.empty());
@@ -420,5 +435,145 @@ class OrderServiceTest {
 
         assertThatThrownBy(() -> orderService.checkout(request))
                 .isInstanceOf(InsufficientStockException.class);
+    }
+
+    @Test
+    @DisplayName("checkout - should create order with Packeta pickup")
+    void checkout_createsOrderWithPacketaPickup() {
+        List<CheckoutRequest.CheckoutItem> items = List.of(
+                new CheckoutRequest.CheckoutItem(1L, 1)
+        );
+        CheckoutRequest request = createCheckoutRequest(false, items, DeliveryMethod.PACKETA_PICKUP, PaymentMethod.CASH_ON_DELIVERY);
+
+        when(userService.getCurrentUserOptional()).thenReturn(Optional.empty());
+        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(productRepository.save(any(Product.class))).thenAnswer(i -> i.getArgument(0));
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
+            Order order = invocation.getArgument(0);
+            order.setId(1L);
+            return order;
+        });
+
+        OrderDTO result = orderService.checkout(request);
+
+        assertThat(result).isNotNull();
+        assertThat(result.deliveryMethod()).isEqualTo(DeliveryMethod.PACKETA_PICKUP);
+        assertThat(result.packetaPointId()).isEqualTo("12345");
+        assertThat(result.packetaPointName()).isEqualTo("Test Point");
+        assertThat(result.deliveryPrice()).isEqualByComparingTo(new BigDecimal("2.49"));
+    }
+
+    @Test
+    @DisplayName("checkout - should throw when Packeta pickup without point selected")
+    void checkout_throwsWhenPacketaPickupWithoutPoint() {
+        List<CheckoutRequest.CheckoutItem> items = List.of(
+                new CheckoutRequest.CheckoutItem(1L, 1)
+        );
+        CheckoutRequest request = new CheckoutRequest(
+                "test@example.com", "Jan", "Novak", null,
+                null, null, null, null, "SK",
+                false, null, null, null, null,
+                DeliveryMethod.PACKETA_PICKUP, null, null, PaymentMethod.CASH_ON_DELIVERY, items
+        );
+
+        when(userService.getCurrentUserOptional()).thenReturn(Optional.empty());
+        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+
+        assertThatThrownBy(() -> orderService.checkout(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("vydajne miesto");
+    }
+
+    @Test
+    @DisplayName("checkout - should throw when Packeta courier delivery without address")
+    void checkout_throwsWhenPacketaCourierWithoutAddress() {
+        List<CheckoutRequest.CheckoutItem> items = List.of(
+                new CheckoutRequest.CheckoutItem(1L, 1)
+        );
+        CheckoutRequest request = new CheckoutRequest(
+                "test@example.com", "Jan", "Novak", null,
+                null, null, null, null, "SK",
+                false, null, null, null, null,
+                DeliveryMethod.PACKETA_COURIER, null, null, PaymentMethod.CASH_ON_DELIVERY, items
+        );
+
+        when(userService.getCurrentUserOptional()).thenReturn(Optional.empty());
+        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+
+        assertThatThrownBy(() -> orderService.checkout(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Ulica");
+    }
+
+    @Test
+    @DisplayName("checkout - should include delivery price in total for Packeta courier")
+    void checkout_includesTotalPriceWithDeliveryForPacketaCourier() {
+        List<CheckoutRequest.CheckoutItem> items = List.of(
+                new CheckoutRequest.CheckoutItem(1L, 2)
+        );
+        CheckoutRequest request = createCheckoutRequest(false, items, DeliveryMethod.PACKETA_COURIER, PaymentMethod.CASH_ON_DELIVERY);
+
+        when(userService.getCurrentUserOptional()).thenReturn(Optional.empty());
+        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(productRepository.save(any(Product.class))).thenAnswer(i -> i.getArgument(0));
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
+            Order order = invocation.getArgument(0);
+            order.setId(1L);
+            return order;
+        });
+
+        OrderDTO result = orderService.checkout(request);
+
+        // 2 x 19.99 = 39.98 + 3.99 delivery = 43.97
+        BigDecimal expectedTotal = new BigDecimal("19.99").multiply(BigDecimal.valueOf(2)).add(new BigDecimal("3.99"));
+        assertThat(result.totalPrice()).isEqualByComparingTo(expectedTotal);
+        assertThat(result.deliveryPrice()).isEqualByComparingTo(new BigDecimal("3.99"));
+    }
+
+    @Test
+    @DisplayName("checkout - should include delivery price in total for Packeta pickup")
+    void checkout_includesTotalPriceWithDeliveryForPacketaPickup() {
+        List<CheckoutRequest.CheckoutItem> items = List.of(
+                new CheckoutRequest.CheckoutItem(1L, 1)
+        );
+        CheckoutRequest request = createCheckoutRequest(false, items, DeliveryMethod.PACKETA_PICKUP, PaymentMethod.CASH_ON_DELIVERY);
+
+        when(userService.getCurrentUserOptional()).thenReturn(Optional.empty());
+        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(productRepository.save(any(Product.class))).thenAnswer(i -> i.getArgument(0));
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
+            Order order = invocation.getArgument(0);
+            order.setId(1L);
+            return order;
+        });
+
+        OrderDTO result = orderService.checkout(request);
+
+        // 1 x 19.99 = 19.99 + 2.49 delivery = 22.48
+        BigDecimal expectedTotal = new BigDecimal("19.99").add(new BigDecimal("2.49"));
+        assertThat(result.totalPrice()).isEqualByComparingTo(expectedTotal);
+        assertThat(result.deliveryPrice()).isEqualByComparingTo(new BigDecimal("2.49"));
+    }
+
+    @Test
+    @DisplayName("checkout - should save payment method as CASH_ON_DELIVERY")
+    void checkout_savesPaymentMethod() {
+        List<CheckoutRequest.CheckoutItem> items = List.of(
+                new CheckoutRequest.CheckoutItem(1L, 1)
+        );
+        CheckoutRequest request = createCheckoutRequest(false, items);
+
+        when(userService.getCurrentUserOptional()).thenReturn(Optional.empty());
+        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(productRepository.save(any(Product.class))).thenAnswer(i -> i.getArgument(0));
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
+            Order order = invocation.getArgument(0);
+            order.setId(1L);
+            return order;
+        });
+
+        OrderDTO result = orderService.checkout(request);
+
+        assertThat(result.paymentMethod()).isEqualTo(PaymentMethod.CASH_ON_DELIVERY);
     }
 }

@@ -1,7 +1,9 @@
 package com.shopapi.backend.dto;
 
+import com.shopapi.backend.entity.DeliveryMethod;
 import com.shopapi.backend.entity.Order;
 import com.shopapi.backend.entity.OrderStatus;
+import com.shopapi.backend.entity.PaymentMethod;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -13,6 +15,7 @@ public record OrderDTO(
         String userEmail,
         OrderStatus status,
         BigDecimal totalPrice,
+        BigDecimal deliveryPrice,
         List<OrderItemDTO> items,
         LocalDateTime createdAt,
         // Contact info
@@ -30,7 +33,13 @@ public record OrderDTO(
         String companyName,
         String ico,
         String dic,
-        String icDph
+        String icDph,
+        // Delivery
+        DeliveryMethod deliveryMethod,
+        String packetaPointId,
+        String packetaPointName,
+        // Payment
+        PaymentMethod paymentMethod
 ) {
     public static OrderDTO from(Order order) {
         var items = order.getOrderItems().stream()
@@ -47,6 +56,7 @@ public record OrderDTO(
                 email,
                 order.getStatus(),
                 order.getTotalPrice(),
+                order.getDeliveryPrice(),
                 items,
                 order.getCreatedAt(),
                 order.getFirstName(),
@@ -61,7 +71,11 @@ public record OrderDTO(
                 order.getCompanyName(),
                 order.getIco(),
                 order.getDic(),
-                order.getIcDph()
+                order.getIcDph(),
+                order.getDeliveryMethod(),
+                order.getPacketaPointId(),
+                order.getPacketaPointName(),
+                order.getPaymentMethod()
         );
     }
 }

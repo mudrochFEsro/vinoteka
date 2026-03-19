@@ -6,21 +6,28 @@ interface CheckoutItem {
 	quantity: number;
 }
 
+type DeliveryMethod = 'PACKETA_COURIER' | 'PACKETA_PICKUP';
+type PaymentMethod = 'CASH_ON_DELIVERY';
+
 interface CheckoutRequest {
 	email: string;
 	firstName: string;
 	lastName: string;
 	phone?: string;
-	street: string;
-	houseNumber: string;
-	city: string;
-	postalCode: string;
-	country: string;
+	street?: string;
+	houseNumber?: string;
+	city?: string;
+	postalCode?: string;
+	country?: string;
 	isCompany: boolean;
 	companyName?: string;
 	ico?: string;
 	dic?: string;
 	icDph?: string;
+	deliveryMethod: DeliveryMethod;
+	packetaPointId?: string;
+	packetaPointName?: string;
+	paymentMethod: PaymentMethod;
 	items?: CheckoutItem[];
 }
 
@@ -34,8 +41,26 @@ export const actions: Actions = {
 				return { success: false, error: 'Chybaju povinne udaje' };
 			}
 
-			if (!data.street || !data.houseNumber || !data.city || !data.postalCode) {
-				return { success: false, error: 'Vyplnte adresu dorucenia' };
+			// Validate delivery method
+			if (!data.deliveryMethod) {
+				return { success: false, error: 'Vyberte sposob dopravy' };
+			}
+
+			// Validate address for courier delivery
+			if (data.deliveryMethod !== 'PACKETA_PICKUP') {
+				if (!data.street || !data.houseNumber || !data.city || !data.postalCode) {
+					return { success: false, error: 'Vyplnte adresu dorucenia' };
+				}
+			} else {
+				// Validate Packeta point for pickup
+				if (!data.packetaPointId) {
+					return { success: false, error: 'Vyberte vydajne miesto' };
+				}
+			}
+
+			// Validate payment method
+			if (!data.paymentMethod) {
+				return { success: false, error: 'Vyberte sposob platby' };
 			}
 
 			// Validate company fields if isCompany

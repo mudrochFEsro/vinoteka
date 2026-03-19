@@ -1,5 +1,7 @@
 package com.shopapi.backend.dto;
 
+import com.shopapi.backend.entity.DeliveryMethod;
+import com.shopapi.backend.entity.PaymentMethod;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 
@@ -19,21 +21,15 @@ public record CheckoutRequest(
 
         String phone,
 
-        // Address
-        @NotBlank(message = "Ulica je povinna")
+        // Address (required for COURIER/PACKETA_COURIER, optional for PACKETA_PICKUP)
         String street,
 
-        @NotBlank(message = "Cislo domu je povinne")
         String houseNumber,
 
-        @NotBlank(message = "Mesto je povinne")
         String city,
 
-        @NotBlank(message = "PSC je povinne")
-        @Pattern(regexp = "\\d{3} ?\\d{2}", message = "PSC musi byt vo formate XXX XX")
         String postalCode,
 
-        @NotBlank(message = "Krajina je povinna")
         @Size(min = 2, max = 2, message = "Krajina musi byt 2-znakovy kod")
         String country,
 
@@ -47,6 +43,19 @@ public record CheckoutRequest(
         String dic,
 
         String icDph,
+
+        // Delivery
+        @NotNull(message = "Sposob dopravy je povinny")
+        DeliveryMethod deliveryMethod,
+
+        // Packeta pickup point (required for PACKETA_PICKUP)
+        String packetaPointId,
+
+        String packetaPointName,
+
+        // Payment
+        @NotNull(message = "Sposob platby je povinny")
+        PaymentMethod paymentMethod,
 
         // Items - only for guest (auth users take from cart)
         @Valid

@@ -10,6 +10,16 @@
 	let ordering = $state(false);
 	let orderError = $state<string | null>(null);
 
+	type DeliveryMethod = 'PACKETA_COURIER' | 'PACKETA_PICKUP';
+
+	const DELIVERY_PRICES: Record<DeliveryMethod, number> = {
+		PACKETA_COURIER: 3.99,
+		PACKETA_PICKUP: 2.49
+	};
+
+	// Packeta Widget API key (get yours at https://client.packeta.com/)
+	const PACKETA_API_KEY = ''; // TODO: Add your Packeta API key
+
 	let form = $state({
 		email: '',
 		firstName: '',
@@ -24,8 +34,103 @@
 		companyName: '',
 		ico: '',
 		dic: '',
-		icDph: ''
+		icDph: '',
+		deliveryMethod: 'PACKETA_COURIER' as DeliveryMethod,
+		packetaPointId: '',
+		packetaPointName: '',
+		paymentMethod: 'CASH_ON_DELIVERY'
 	});
+
+	let deliveryPrice = $derived(DELIVERY_PRICES[form.deliveryMethod]);
+
+	// Open Packeta widget for pickup point selection
+	function openPacketaWidget() {
+		if (!browser) return;
+
+		// Packeta widget options
+		const options = {
+			country: form.country.toLowerCase(),
+			language: 'sk',
+			appIdentity: 'vinoteka-eshop',
+			// Use geolocation for better UX
+			defaultLocation: null as { latitude: number; longitude: number } | null
+		};
+
+		// Try to get current location
+		if (navigator.geolocation) {
+			navigator.geolocation.getCurrentPosition(
+				(position) => {
+					options.defaultLocation = {
+						latitude: position.coords.latitude,
+						longitude: position.coords.longitude
+					};
+					showPacketaWidget(options);
+				},
+				() => {
+					// Geolocation failed, show widget without location
+					showPacketaWidget(options);
+				},
+				{ timeout: 5000 }
+			);
+		} else {
+			showPacketaWidget(options);
+		}
+	}
+
+	function showPacketaWidget(options: {
+		country: string;
+		language: string;
+		appIdentity: string;
+		defaultLocation: { latitude: number; longitude: number } | null;
+	}) {
+		// Check if Packeta widget is loaded
+		const Packeta = (window as Window & { Packeta?: PacketaWidget }).Packeta;
+		if (!Packeta) {
+			// Load Packeta widget script dynamically
+			const script = document.createElement('script');
+			script.src = 'https://widget.packeta.com/v6/www/js/library.js';
+			script.onload = () => {
+				const PacketaLoaded = (window as Window & { Packeta?: PacketaWidget }).Packeta;
+				if (PacketaLoaded) {
+					PacketaLoaded.Widget.pick(
+						PACKETA_API_KEY,
+						handlePacketaPointSelected,
+						options
+					);
+				}
+			};
+			document.head.appendChild(script);
+		} else {
+			Packeta.Widget.pick(PACKETA_API_KEY, handlePacketaPointSelected, options);
+		}
+	}
+
+	interface PacketaWidget {
+		Widget: {
+			pick: (
+				apiKey: string,
+				callback: (point: PacketaPoint | null) => void,
+				options: object
+			) => void;
+		};
+	}
+
+	interface PacketaPoint {
+		id: string;
+		name: string;
+		place: string;
+		street: string;
+		city: string;
+		zip: string;
+	}
+
+	function handlePacketaPointSelected(point: PacketaPoint | null) {
+		if (point) {
+			form.packetaPointId = point.id;
+			form.packetaPointName = `${point.name}, ${point.street}, ${point.city}`;
+			touched['packetaPointId'] = true;
+		}
+	}
 
 	let touched = $state<Record<string, boolean>>({});
 
@@ -56,6 +161,9 @@
 		}
 	});
 
+	// Address required only for courier delivery
+	let requiresAddress = $derived(form.deliveryMethod !== 'PACKETA_PICKUP');
+
 	// Validation rules
 	const validations: Record<string, () => string | null> = {
 		email: () => {
@@ -65,13 +173,27 @@
 		},
 		firstName: () => (form.firstName ? null : 'Meno je povinne'),
 		lastName: () => (form.lastName ? null : 'Priezvisko je povinne'),
-		street: () => (form.street ? null : 'Ulica je povinna'),
-		houseNumber: () => (form.houseNumber ? null : 'Cislo je povinne'),
-		city: () => (form.city ? null : 'Mesto je povinne'),
+		street: () => {
+			if (!requiresAddress) return null;
+			return form.street ? null : 'Ulica je povinna';
+		},
+		houseNumber: () => {
+			if (!requiresAddress) return null;
+			return form.houseNumber ? null : 'Cislo je povinne';
+		},
+		city: () => {
+			if (!requiresAddress) return null;
+			return form.city ? null : 'Mesto je povinne';
+		},
 		postalCode: () => {
+			if (!requiresAddress) return null;
 			if (!form.postalCode) return 'PSC je povinne';
 			if (!/^\d{3} ?\d{2}$/.test(form.postalCode)) return 'Format: XXX XX';
 			return null;
+		},
+		packetaPointId: () => {
+			if (form.deliveryMethod !== 'PACKETA_PICKUP') return null;
+			return form.packetaPointId ? null : 'Vyberte vydajne miesto';
 		},
 		// Company validations (only when isCompany is true)
 		companyName: () => (form.isCompany && !form.companyName ? 'Nazov firmy je povinny' : null),
@@ -196,11 +318,15 @@
 						<span class="text-gray-900 dark:text-white">{item.subtotal.toFixed(2)} EUR</span>
 					</div>
 				{/each}
+				<div class="flex justify-between text-sm">
+					<span class="text-gray-600 dark:text-gray-400">Doprava</span>
+					<span class="text-gray-900 dark:text-white">{deliveryPrice.toFixed(2)} EUR</span>
+				</div>
 				<div class="border-t border-gray-200 pt-2 dark:border-[#3a3a3c]">
 					<div class="flex justify-between font-medium">
 						<span class="text-gray-900 dark:text-white">Celkom</span>
 						<span class="text-indigo-600 dark:text-indigo-400">
-							{cartStore.cart.totalPrice.toFixed(2)} EUR
+							{(cartStore.cart.totalPrice + deliveryPrice).toFixed(2)} EUR
 						</span>
 					</div>
 				</div>
@@ -323,7 +449,91 @@
 				</div>
 			</div>
 
-			<!-- Address Section -->
+			<!-- Delivery Section -->
+			<div class="rounded-2xl bg-white p-6 shadow dark:bg-[#1c1c1e]">
+				<div class="mb-4 flex items-center gap-2">
+					<img src="https://www.packeta.com/favicon.ico" alt="Packeta" class="h-6 w-6" />
+					<h2 class="text-lg font-medium text-gray-900 dark:text-white">Sposob dopravy</h2>
+				</div>
+
+				<div class="space-y-3">
+					<label
+						class="flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors {form.deliveryMethod ===
+						'PACKETA_COURIER'
+							? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+							: 'border-gray-200 hover:border-gray-300 dark:border-[#3a3a3c]'}"
+					>
+						<input
+							type="radio"
+							name="deliveryMethod"
+							value="PACKETA_COURIER"
+							bind:group={form.deliveryMethod}
+							class="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
+						/>
+						<div class="flex-1">
+							<span class="font-medium text-gray-900 dark:text-white">Packeta kurier</span>
+							<p class="text-sm text-gray-500 dark:text-gray-400">Dorucenie na vasu adresu</p>
+						</div>
+						<span class="font-medium text-gray-900 dark:text-white">3.99 EUR</span>
+					</label>
+
+					<label
+						class="flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors {form.deliveryMethod ===
+						'PACKETA_PICKUP'
+							? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+							: 'border-gray-200 hover:border-gray-300 dark:border-[#3a3a3c]'}"
+					>
+						<input
+							type="radio"
+							name="deliveryMethod"
+							value="PACKETA_PICKUP"
+							bind:group={form.deliveryMethod}
+							class="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
+						/>
+						<div class="flex-1">
+							<span class="font-medium text-gray-900 dark:text-white">Packeta vydajne miesto</span>
+							<p class="text-sm text-gray-500 dark:text-gray-400">Vyzdvihnite si balik na pobocke</p>
+						</div>
+						<span class="font-medium text-gray-900 dark:text-white">2.49 EUR</span>
+					</label>
+				</div>
+
+				{#if form.deliveryMethod === 'PACKETA_PICKUP'}
+					<div class="mt-4 border-t border-gray-200 pt-4 dark:border-[#3a3a3c]">
+						<label for="packetaPointName" class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+							>Vydajne miesto *</label
+						>
+						<div class="mt-1 flex gap-2">
+							<input
+								type="text"
+								id="packetaPointName"
+								bind:value={form.packetaPointName}
+								readonly
+								placeholder="Kliknite na 'Vybrat' pre vyber miesta"
+								class="flex-1 rounded-lg border px-3 py-2 {form.packetaPointId
+									? 'border-green-500 bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-300'
+									: 'border-gray-300 bg-gray-50 text-gray-500 dark:border-[#3a3a3c] dark:bg-[#2c2c2e] dark:text-gray-400'}"
+							/>
+							<button
+								type="button"
+								onclick={openPacketaWidget}
+								class="rounded-lg bg-[#ba1b02] px-4 py-2 text-sm font-medium text-white hover:bg-[#a01800] transition-colors"
+							>
+								Vybrat miesto
+							</button>
+						</div>
+						{#if hasError('packetaPointId')}
+							<p class="mt-1 text-xs text-red-600 dark:text-red-400">{errors.packetaPointId}</p>
+						{/if}
+						<p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+							Z-BOXy, pobocky Packeta a vybrane partnerske predajne
+						</p>
+					</div>
+				{/if}
+			</div>
+
+			<!-- Address Section (only for courier delivery) -->
+			{#if requiresAddress}
 			<div class="rounded-2xl bg-white p-6 shadow dark:bg-[#1c1c1e]">
 				<h2 class="mb-4 text-lg font-medium text-gray-900 dark:text-white">Adresa dorucenia</h2>
 
@@ -434,6 +644,56 @@
 							</select>
 						</div>
 					</div>
+				</div>
+			</div>
+			{/if}
+
+			<!-- Payment Section -->
+			<div class="rounded-2xl bg-white p-6 shadow dark:bg-[#1c1c1e]">
+				<h2 class="mb-4 text-lg font-medium text-gray-900 dark:text-white">Sposob platby</h2>
+
+				<div
+					class="flex items-center gap-3 rounded-lg border border-indigo-500 bg-indigo-50 p-4 dark:bg-indigo-900/20"
+				>
+					<div
+						class="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-800"
+					>
+						<svg
+							class="h-5 w-5 text-indigo-600 dark:text-indigo-300"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+							/>
+						</svg>
+					</div>
+					<div class="flex-1">
+						<span class="font-medium text-gray-900 dark:text-white">Dobierka</span>
+						<p class="text-sm text-gray-600 dark:text-gray-400">Platba pri prevzati zasielky</p>
+					</div>
+				</div>
+
+				<div class="mt-4 rounded-lg bg-gray-50 p-4 dark:bg-[#2c2c2e]">
+					<p class="text-sm font-medium text-gray-700 dark:text-gray-300">Moznosti platby:</p>
+					<ul class="mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-400">
+						{#if form.deliveryMethod === 'PACKETA_COURIER'}
+							<li class="flex items-center gap-2">
+								<span class="text-green-500">&#10003;</span> Hotovost kurierovi
+							</li>
+							<li class="flex items-center gap-2">
+								<span class="text-green-500">&#10003;</span> Platba kartou kurierovi
+							</li>
+						{:else}
+							<li class="flex items-center gap-2">
+								<span class="text-green-500">&#10003;</span> Platba kartou v Packeta appke
+							</li>
+						{/if}
+					</ul>
 				</div>
 			</div>
 
