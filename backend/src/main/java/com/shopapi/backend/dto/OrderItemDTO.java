@@ -13,12 +13,14 @@ public record OrderItemDTO(
         BigDecimal subtotal
 ) {
     public static OrderItemDTO from(OrderItem item) {
-        BigDecimal subtotal = item.getPriceAtPurchase()
+        var product = item.getProduct();
+        var subtotal = item.getPriceAtPurchase()
                 .multiply(BigDecimal.valueOf(item.getQuantity()));
+
         return new OrderItemDTO(
                 item.getId(),
-                item.getProduct().getId(),
-                item.getProduct().getName(),
+                product.getId(),
+                product.getName(),
                 item.getQuantity(),
                 item.getPriceAtPurchase(),
                 subtotal

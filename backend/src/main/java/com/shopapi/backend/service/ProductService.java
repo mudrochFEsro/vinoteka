@@ -3,7 +3,6 @@ package com.shopapi.backend.service;
 import com.shopapi.backend.dto.CreateProductRequest;
 import com.shopapi.backend.dto.ProductDTO;
 import com.shopapi.backend.dto.UpdateProductRequest;
-import com.shopapi.backend.entity.Category;
 import com.shopapi.backend.entity.Product;
 import com.shopapi.backend.exception.ProductNotFoundException;
 import com.shopapi.backend.repository.CategoryRepository;
@@ -14,145 +13,103 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 
-/**
- * SERVICE = biznis logika aplikácie
- *
- * Tu píšeš "čo aplikácia robí":
- * - validácie, výpočty, kombinovanie dát z viacerých zdrojov
- *
- * Analógia: Service je ako utils/helpers v JS, ale organizované okolo domény
- * ProductService = všetko čo súvisí s produktmi
- */
-@Service  // Spring vie že toto je service a môže ho "injektovať" inde
-@RequiredArgsConstructor  // Dependency injection cez konštruktor
+@Service
+@RequiredArgsConstructor
 public class ProductService {
 
-    // Repository = prístup k databáze (ako Prisma/Drizzle v JS)
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
 
-    /**
-     * Nájdi všetky produkty s voliteľným filtrovaním
-     *
-     * @Transactional(readOnly = true) =
-     *   - Všetky DB operácie v tejto metóde sú v jednej transakcii
-     *   - readOnly = optimalizácia, hovoríme DB že len čítame
-     */
     @Transactional(readOnly = true)
     public List<ProductDTO> findAll(Long categoryId, String search, BigDecimal minPrice, BigDecimal maxPrice) {
-        List<Product> products;
+        var products = fetchProducts(categoryId, search, minPrice, maxPrice);
 
-        // Načítaj produkty podľa filtrov
-        if (categoryId != null) {
-            products = productRepository.findByCategoryId(categoryId);
-        } else if (search != null && !search.isBlank()) {
-            products = productRepository.findByNameContainingIgnoreCase(search);
-        } else if (minPrice != null && maxPrice != null) {
-            products = productRepository.findByPriceBetween(minPrice, maxPrice);
-        } else {
-            products = productRepository.findAll();
-        }
-
-        // Stream API = ako .filter().map() v JavaScripte
-        // Aplikuj dodatočné filtre a transformuj na DTO
         return products.stream()
                 .filter(p -> minPrice == null || p.getPrice().compareTo(minPrice) >= 0)
                 .filter(p -> maxPrice == null || p.getPrice().compareTo(maxPrice) <= 0)
-                .filter(p -> search == null || search.isBlank() ||
-                        p.getName().toLowerCase().contains(search.toLowerCase()))
-                .map(ProductDTO::from)  // Transformuj Entity -> DTO
+                .filter(p -> isBlank(search) || containsIgnoreCase(p.getName(), search))
+                .map(ProductDTO::from)
                 .toList();
     }
 
-    /**
-     * Nájdi produkt podľa ID
-     *
-     * Optional = môže obsahovať hodnotu alebo byť prázdny (ako null v JS)
-     * orElseThrow = ak je prázdny, vyhoď výnimku (error)
-     */
     @Transactional(readOnly = true)
     public ProductDTO findById(Long id) {
         return productRepository.findById(id)
-                .map(ProductDTO::from)  // Ak existuje, transformuj na DTO
-                .orElseThrow(() -> new ProductNotFoundException(id));  // Ak nie, error 404
+                .map(ProductDTO::from)
+                .orElseThrow(() -> new ProductNotFoundException(id));
     }
 
-    /**
-     * Vytvor nový produkt
-     *
-     * Builder pattern = elegantný spôsob vytvárania objektov
-     * Namiesto: new Product(); p.setName("x"); p.setPrice(10);
-     * Píšeš:    Product.builder().name("x").price(10).build();
-     */
-    @Transactional  // Zapisujeme do DB, potrebujeme transakciu
+    @Transactional
     public ProductDTO create(CreateProductRequest request) {
-        Product product = Product.builder()
+        var product = Product.builder()
                 .name(request.name())
                 .description(request.description())
                 .price(request.price())
-                .stock(request.stock() != null ? request.stock() : 0)
+                .stock(Objects.requireNonNullElse(request.stock(), 0))
                 .imageUrl(request.imageUrl())
                 .build();
 
-        // Ak bol zadaný categoryId, nájdi kategóriu a priraď ju
         if (request.categoryId() != null) {
-            Category category = categoryRepository.findById(request.categoryId())
-                    .orElse(null);
-            product.setCategory(category);
+            categoryRepository.findById(request.categoryId())
+                    .ifPresent(product::setCategory);
         }
 
-        // save() uloží do databázy a vráti uložený objekt (s vygenerovaným ID)
-        Product saved = productRepository.save(product);
-        return ProductDTO.from(saved);
+        return ProductDTO.from(productRepository.save(product));
     }
 
-    /**
-     * Aktualizuj existujúci produkt (PATCH/PUT)
-     *
-     * Aktualizujeme len tie polia, ktoré boli poslané (nie null)
-     */
     @Transactional
     public ProductDTO update(Long id, UpdateProductRequest request) {
-        // Najprv nájdi produkt, ak neexistuje -> 404
-        Product product = productRepository.findById(id)
+        var product = productRepository.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException(id));
 
-        // Aktualizuj len polia ktoré prišli (partial update)
-        if (request.name() != null) {
-            product.setName(request.name());
-        }
-        if (request.description() != null) {
-            product.setDescription(request.description());
-        }
-        if (request.price() != null) {
-            product.setPrice(request.price());
-        }
-        if (request.stock() != null) {
-            product.setStock(request.stock());
-        }
-        if (request.imageUrl() != null) {
-            product.setImageUrl(request.imageUrl());
-        }
+        updateIfNotNull(request.name(), product::setName);
+        updateIfNotNull(request.description(), product::setDescription);
+        updateIfNotNull(request.price(), product::setPrice);
+        updateIfNotNull(request.stock(), product::setStock);
+        updateIfNotNull(request.imageUrl(), product::setImageUrl);
+
         if (request.categoryId() != null) {
-            Category category = categoryRepository.findById(request.categoryId())
-                    .orElse(null);
-            product.setCategory(category);
+            categoryRepository.findById(request.categoryId())
+                    .ifPresent(product::setCategory);
         }
 
-        Product saved = productRepository.save(product);
-        return ProductDTO.from(saved);
+        return ProductDTO.from(productRepository.save(product));
     }
 
-    /**
-     * Vymaž produkt
-     */
     @Transactional
     public void delete(Long id) {
-        // Over že produkt existuje
         if (!productRepository.existsById(id)) {
             throw new ProductNotFoundException(id);
         }
         productRepository.deleteById(id);
+    }
+
+    private List<Product> fetchProducts(Long categoryId, String search, BigDecimal minPrice, BigDecimal maxPrice) {
+        if (categoryId != null) {
+            return productRepository.findByCategoryId(categoryId);
+        }
+        if (!isBlank(search)) {
+            return productRepository.findByNameContainingIgnoreCase(search);
+        }
+        if (minPrice != null && maxPrice != null) {
+            return productRepository.findByPriceBetween(minPrice, maxPrice);
+        }
+        return productRepository.findAll();
+    }
+
+    private static boolean isBlank(String str) {
+        return str == null || str.isBlank();
+    }
+
+    private static boolean containsIgnoreCase(String text, String search) {
+        return text.toLowerCase().contains(search.toLowerCase());
+    }
+
+    private static <T> void updateIfNotNull(T value, java.util.function.Consumer<T> setter) {
+        if (value != null) {
+            setter.accept(value);
+        }
     }
 }

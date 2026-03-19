@@ -13,19 +13,14 @@ public record CartDTO(
         LocalDateTime createdAt
 ) {
     public static CartDTO from(Cart cart) {
-        List<CartItemDTO> items = cart.getCartItems().stream()
+        var items = cart.getCartItems().stream()
                 .map(CartItemDTO::from)
                 .toList();
 
-        BigDecimal total = items.stream()
+        var total = items.stream()
                 .map(CartItemDTO::subtotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        return new CartDTO(
-                cart.getId(),
-                items,
-                total,
-                cart.getCreatedAt()
-        );
+        return new CartDTO(cart.getId(), items, total, cart.getCreatedAt());
     }
 }

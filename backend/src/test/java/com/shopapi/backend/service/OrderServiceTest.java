@@ -1,5 +1,6 @@
 package com.shopapi.backend.service;
 
+import com.shopapi.backend.dto.CheckoutRequest;
 import com.shopapi.backend.dto.OrderDTO;
 import com.shopapi.backend.dto.UpdateOrderStatusRequest;
 import com.shopapi.backend.entity.*;
@@ -230,5 +231,194 @@ class OrderServiceTest {
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).status()).isEqualTo(OrderStatus.PENDING);
+    }
+
+    // ==================== CHECKOUT TESTS ====================
+
+    private CheckoutRequest createCheckoutRequest(boolean isCompany, List<CheckoutRequest.CheckoutItem> items) {
+        return new CheckoutRequest(
+                "test@example.com",
+                "Jan",
+                "Novak",
+                "+421123456789",
+                "Hlavna",
+                "123",
+                "Bratislava",
+                "821 07",
+                "SK",
+                isCompany,
+                isCompany ? "Test s.r.o." : null,
+                isCompany ? "12345678" : null,
+                isCompany ? "2012345678" : null,
+                isCompany ? "SK2012345678" : null,
+                items
+        );
+    }
+
+    @Test
+    @DisplayName("checkout - should create order for authenticated user from cart")
+    void checkout_createsOrderForAuthenticatedUser() {
+        CartItem cartItem = CartItem.builder()
+                .id(1L)
+                .cart(testCart)
+                .product(testProduct)
+                .quantity(2)
+                .build();
+        testCart.getCartItems().add(cartItem);
+
+        CheckoutRequest request = createCheckoutRequest(false, null);
+
+        when(userService.getCurrentUserOptional()).thenReturn(Optional.of(testUser));
+        when(cartRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testCart));
+        when(productRepository.save(any(Product.class))).thenAnswer(i -> i.getArgument(0));
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
+            Order order = invocation.getArgument(0);
+            order.setId(1L);
+            return order;
+        });
+
+        OrderDTO result = orderService.checkout(request);
+
+        assertThat(result).isNotNull();
+        assertThat(result.status()).isEqualTo(OrderStatus.PENDING);
+        assertThat(result.firstName()).isEqualTo("Jan");
+        assertThat(result.lastName()).isEqualTo("Novak");
+        assertThat(result.street()).isEqualTo("Hlavna");
+        assertThat(result.city()).isEqualTo("Bratislava");
+        assertThat(result.isCompany()).isFalse();
+        assertThat(testProduct.getStock()).isEqualTo(8);
+        verify(cartRepository).save(testCart);
+    }
+
+    @Test
+    @DisplayName("checkout - should create order for guest user from request items")
+    void checkout_createsOrderForGuestUser() {
+        List<CheckoutRequest.CheckoutItem> items = List.of(
+                new CheckoutRequest.CheckoutItem(1L, 2)
+        );
+        CheckoutRequest request = createCheckoutRequest(false, items);
+
+        when(userService.getCurrentUserOptional()).thenReturn(Optional.empty());
+        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(productRepository.save(any(Product.class))).thenAnswer(i -> i.getArgument(0));
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
+            Order order = invocation.getArgument(0);
+            order.setId(1L);
+            return order;
+        });
+
+        OrderDTO result = orderService.checkout(request);
+
+        assertThat(result).isNotNull();
+        assertThat(result.userId()).isNull();
+        assertThat(result.userEmail()).isEqualTo("test@example.com");
+        assertThat(result.firstName()).isEqualTo("Jan");
+        assertThat(testProduct.getStock()).isEqualTo(8);
+    }
+
+    @Test
+    @DisplayName("checkout - should create company order with company fields")
+    void checkout_createsCompanyOrder() {
+        List<CheckoutRequest.CheckoutItem> items = List.of(
+                new CheckoutRequest.CheckoutItem(1L, 1)
+        );
+        CheckoutRequest request = createCheckoutRequest(true, items);
+
+        when(userService.getCurrentUserOptional()).thenReturn(Optional.empty());
+        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(productRepository.save(any(Product.class))).thenAnswer(i -> i.getArgument(0));
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
+            Order order = invocation.getArgument(0);
+            order.setId(1L);
+            return order;
+        });
+
+        OrderDTO result = orderService.checkout(request);
+
+        assertThat(result).isNotNull();
+        assertThat(result.isCompany()).isTrue();
+        assertThat(result.companyName()).isEqualTo("Test s.r.o.");
+        assertThat(result.ico()).isEqualTo("12345678");
+        assertThat(result.dic()).isEqualTo("2012345678");
+        assertThat(result.icDph()).isEqualTo("SK2012345678");
+    }
+
+    @Test
+    @DisplayName("checkout - should throw when company name missing for company order")
+    void checkout_throwsWhenCompanyNameMissing() {
+        List<CheckoutRequest.CheckoutItem> items = List.of(
+                new CheckoutRequest.CheckoutItem(1L, 1)
+        );
+        CheckoutRequest request = new CheckoutRequest(
+                "test@example.com", "Jan", "Novak", null,
+                "Hlavna", "123", "Bratislava", "821 07", "SK",
+                true, null, "12345678", null, null, items
+        );
+
+        when(userService.getCurrentUserOptional()).thenReturn(Optional.empty());
+        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+
+        assertThatThrownBy(() -> orderService.checkout(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Nazov firmy");
+    }
+
+    @Test
+    @DisplayName("checkout - should throw when ICO missing for company order")
+    void checkout_throwsWhenIcoMissing() {
+        List<CheckoutRequest.CheckoutItem> items = List.of(
+                new CheckoutRequest.CheckoutItem(1L, 1)
+        );
+        CheckoutRequest request = new CheckoutRequest(
+                "test@example.com", "Jan", "Novak", null,
+                "Hlavna", "123", "Bratislava", "821 07", "SK",
+                true, "Test s.r.o.", null, null, null, items
+        );
+
+        when(userService.getCurrentUserOptional()).thenReturn(Optional.empty());
+        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+
+        assertThatThrownBy(() -> orderService.checkout(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("ICO");
+    }
+
+    @Test
+    @DisplayName("checkout - should throw when guest checkout has no items")
+    void checkout_throwsWhenGuestHasNoItems() {
+        CheckoutRequest request = createCheckoutRequest(false, null);
+
+        when(userService.getCurrentUserOptional()).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> orderService.checkout(request))
+                .isInstanceOf(EmptyCartException.class);
+    }
+
+    @Test
+    @DisplayName("checkout - should throw when auth user cart is empty")
+    void checkout_throwsWhenAuthUserCartEmpty() {
+        CheckoutRequest request = createCheckoutRequest(false, null);
+
+        when(userService.getCurrentUserOptional()).thenReturn(Optional.of(testUser));
+        when(cartRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testCart));
+
+        assertThatThrownBy(() -> orderService.checkout(request))
+                .isInstanceOf(EmptyCartException.class);
+    }
+
+    @Test
+    @DisplayName("checkout - should throw when insufficient stock")
+    void checkout_throwsWhenInsufficientStock() {
+        testProduct.setStock(1);
+        List<CheckoutRequest.CheckoutItem> items = List.of(
+                new CheckoutRequest.CheckoutItem(1L, 5)
+        );
+        CheckoutRequest request = createCheckoutRequest(false, items);
+
+        when(userService.getCurrentUserOptional()).thenReturn(Optional.empty());
+        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+
+        assertThatThrownBy(() -> orderService.checkout(request))
+                .isInstanceOf(InsufficientStockException.class);
     }
 }

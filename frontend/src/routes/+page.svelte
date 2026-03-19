@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { products, categories, type Product, type Category } from '$lib/api';
 	import ProductCard from '$lib/components/ProductCard.svelte';
+	import ProductSkeleton from '$lib/components/ProductSkeleton.svelte';
 
 	let allProducts = $state.raw<Product[]>([]);
 	let allCategories = $state.raw<Category[]>([]);
@@ -9,7 +10,18 @@
 	let error = $state<string | null>(null);
 
 	let search = $state('');
+	let debouncedSearch = $state('');
 	let selectedCategory = $state<number | null>(null);
+
+	// Debounce search input
+	let debounceTimer: ReturnType<typeof setTimeout>;
+	$effect(() => {
+		clearTimeout(debounceTimer);
+		debounceTimer = setTimeout(() => {
+			debouncedSearch = search;
+		}, 300);
+		return () => clearTimeout(debounceTimer);
+	});
 
 	let filteredProducts = $derived.by(() => {
 		let result = allProducts;
@@ -18,8 +30,8 @@
 			result = result.filter((p) => p.categoryId === selectedCategory);
 		}
 
-		if (search.trim()) {
-			const searchLower = search.toLowerCase();
+		if (debouncedSearch.trim()) {
+			const searchLower = debouncedSearch.toLowerCase();
 			result = result.filter(
 				(p) =>
 					p.name.toLowerCase().includes(searchLower) ||
@@ -63,8 +75,10 @@
 	</div>
 
 	{#if loading}
-		<div class="py-12 text-center">
-			<p class="text-gray-500 dark:text-gray-400">Nacitavam produkty...</p>
+		<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+			{#each Array(8) as _}
+				<ProductSkeleton />
+			{/each}
 		</div>
 	{:else if error}
 		<div class="rounded-md bg-red-50 p-4 dark:bg-red-900/20">
@@ -75,6 +89,11 @@
 			<p class="text-gray-500 dark:text-gray-400">Ziadne produkty</p>
 		</div>
 	{:else}
+		{#if debouncedSearch.trim() || selectedCategory !== null}
+			<p class="mb-4 text-sm text-gray-500 dark:text-gray-400">
+				Najdenych {filteredProducts.length} {filteredProducts.length === 1 ? 'produkt' : filteredProducts.length < 5 ? 'produkty' : 'produktov'}
+			</p>
+		{/if}
 		<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 			{#each filteredProducts as product (product.id)}
 				<ProductCard {product} />

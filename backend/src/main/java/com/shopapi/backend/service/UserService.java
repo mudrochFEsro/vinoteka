@@ -9,6 +9,8 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -69,5 +71,24 @@ public class UserService {
                             .build();
                     return userRepository.save(newUser);
                 });
+    }
+
+    /**
+     * Returns current authenticated user if present, empty Optional otherwise.
+     * Used for endpoints that work with both authenticated and guest users.
+     */
+    @Transactional
+    public Optional<User> getCurrentUserOptional() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof Jwt)) {
+            return Optional.empty();
+        }
+
+        try {
+            return Optional.of(getOrCreateCurrentUser());
+        } catch (Exception e) {
+            log.debug("Could not get current user: {}", e.getMessage());
+            return Optional.empty();
+        }
     }
 }

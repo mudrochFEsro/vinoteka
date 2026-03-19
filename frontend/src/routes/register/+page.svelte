@@ -7,12 +7,7 @@
 		password: '',
 		confirmPassword: '',
 		firstName: '',
-		lastName: '',
-		street: '',
-		houseNumber: '',
-		city: '',
-		postalCode: '',
-		country: 'SK'
+		lastName: ''
 	});
 
 	let touched = $state<Record<string, boolean>>({});
@@ -37,14 +32,6 @@
 		confirmPassword: () => {
 			if (!form.confirmPassword) return 'Potvrdte heslo';
 			if (form.password !== form.confirmPassword) return 'Hesla sa nezhoduju';
-			return null;
-		},
-		street: () => (form.street.length > 0 ? null : 'Ulica je povinna'),
-		houseNumber: () => (form.houseNumber.length > 0 ? null : 'Cislo domu je povinne'),
-		city: () => (form.city.length > 0 ? null : 'Mesto je povinne'),
-		postalCode: () => {
-			if (!form.postalCode) return 'PSC je povinne';
-			if (!/^\d{3} ?\d{2}$/.test(form.postalCode)) return 'Format: XXX XX';
 			return null;
 		}
 	};
@@ -85,7 +72,7 @@
 </script>
 
 <div class="flex min-h-[80vh] items-center justify-center py-8">
-	<div class="w-full max-w-lg">
+	<div class="w-full max-w-md">
 		<div class="rounded-2xl bg-white px-8 py-10 shadow-lg transition-colors dark:bg-[#1c1c1e]">
 			<h1 class="mb-8 text-center text-2xl font-bold text-gray-900 dark:text-white">
 				Registracia
@@ -285,147 +272,6 @@
 						{#if hasError('confirmPassword')}
 							<p class="mt-1 text-xs text-red-600 dark:text-red-400">{errors.confirmPassword}</p>
 						{/if}
-					</div>
-				</div>
-
-				<!-- Address section -->
-				<div class="border-t border-gray-200 pt-5 dark:border-[#3a3a3c]">
-					<h2 class="mb-4 text-lg font-medium text-gray-900 dark:text-white">Dorucovacia adresa</h2>
-
-					<div class="grid grid-cols-3 gap-4">
-						<div class="col-span-2">
-							<label for="street" class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-								>Ulica *</label
-							>
-							<div class="relative">
-								<input
-									type="text"
-									id="street"
-									name="street"
-									bind:value={form.street}
-									onblur={() => onBlur('street')}
-									class="mt-1 block w-full rounded-lg border bg-white pr-10 shadow-sm transition-colors focus:ring-2 dark:bg-[#2c2c2e] dark:text-white
-									{hasError('street')
-										? 'border-red-500 focus:border-red-500 focus:ring-red-200'
-										: isValid('street')
-											? 'border-green-500 focus:border-green-500 focus:ring-green-200'
-											: 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-200 dark:border-[#3a3a3c]'}"
-								/>
-								{#if isValid('street')}
-									<span class="absolute top-1/2 right-3 -translate-y-1/2 text-green-500"
-										>&#10003;</span
-									>
-								{/if}
-							</div>
-							{#if hasError('street')}
-								<p class="mt-1 text-xs text-red-600 dark:text-red-400">{errors.street}</p>
-							{/if}
-						</div>
-						<div>
-							<label
-								for="houseNumber"
-								class="block text-sm font-medium text-gray-700 dark:text-gray-300">Cislo *</label
-							>
-							<div class="relative">
-								<input
-									type="text"
-									id="houseNumber"
-									name="houseNumber"
-									bind:value={form.houseNumber}
-									onblur={() => onBlur('houseNumber')}
-									class="mt-1 block w-full rounded-lg border bg-white pr-10 shadow-sm transition-colors focus:ring-2 dark:bg-[#2c2c2e] dark:text-white
-									{hasError('houseNumber')
-										? 'border-red-500 focus:border-red-500 focus:ring-red-200'
-										: isValid('houseNumber')
-											? 'border-green-500 focus:border-green-500 focus:ring-green-200'
-											: 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-200 dark:border-[#3a3a3c]'}"
-								/>
-								{#if isValid('houseNumber')}
-									<span class="absolute top-1/2 right-3 -translate-y-1/2 text-green-500"
-										>&#10003;</span
-									>
-								{/if}
-							</div>
-							{#if hasError('houseNumber')}
-								<p class="mt-1 text-xs text-red-600 dark:text-red-400">{errors.houseNumber}</p>
-							{/if}
-						</div>
-					</div>
-
-					<div class="mt-4 grid grid-cols-3 gap-4">
-						<div>
-							<label for="city" class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-								>Mesto *</label
-							>
-							<div class="relative">
-								<input
-									type="text"
-									id="city"
-									name="city"
-									bind:value={form.city}
-									onblur={() => onBlur('city')}
-									class="mt-1 block w-full rounded-lg border bg-white pr-10 shadow-sm transition-colors focus:ring-2 dark:bg-[#2c2c2e] dark:text-white
-									{hasError('city')
-										? 'border-red-500 focus:border-red-500 focus:ring-red-200'
-										: isValid('city')
-											? 'border-green-500 focus:border-green-500 focus:ring-green-200'
-											: 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-200 dark:border-[#3a3a3c]'}"
-								/>
-								{#if isValid('city')}
-									<span class="absolute top-1/2 right-3 -translate-y-1/2 text-green-500"
-										>&#10003;</span
-									>
-								{/if}
-							</div>
-							{#if hasError('city')}
-								<p class="mt-1 text-xs text-red-600 dark:text-red-400">{errors.city}</p>
-							{/if}
-						</div>
-						<div>
-							<label
-								for="postalCode"
-								class="block text-sm font-medium text-gray-700 dark:text-gray-300">PSC *</label
-							>
-							<div class="relative">
-								<input
-									type="text"
-									id="postalCode"
-									name="postalCode"
-									bind:value={form.postalCode}
-									onblur={() => onBlur('postalCode')}
-									placeholder="821 07"
-									class="mt-1 block w-full rounded-lg border bg-white pr-10 shadow-sm transition-colors focus:ring-2 dark:bg-[#2c2c2e] dark:text-white dark:placeholder-gray-400
-									{hasError('postalCode')
-										? 'border-red-500 focus:border-red-500 focus:ring-red-200'
-										: isValid('postalCode')
-											? 'border-green-500 focus:border-green-500 focus:ring-green-200'
-											: 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-200 dark:border-[#3a3a3c]'}"
-								/>
-								{#if isValid('postalCode')}
-									<span class="absolute top-1/2 right-3 -translate-y-1/2 text-green-500"
-										>&#10003;</span
-									>
-								{/if}
-							</div>
-							{#if hasError('postalCode')}
-								<p class="mt-1 text-xs text-red-600 dark:text-red-400">{errors.postalCode}</p>
-							{/if}
-						</div>
-						<div>
-							<label
-								for="country"
-								class="block text-sm font-medium text-gray-700 dark:text-gray-300">Krajina *</label
-							>
-							<select
-								id="country"
-								name="country"
-								bind:value={form.country}
-								class="mt-1 block w-full rounded-lg border border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:border-[#3a3a3c] dark:bg-[#2c2c2e] dark:text-white"
-							>
-								<option value="SK">Slovensko</option>
-								<option value="CZ">Cesko</option>
-							</select>
-						</div>
 					</div>
 				</div>
 

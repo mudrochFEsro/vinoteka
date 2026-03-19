@@ -1,27 +1,23 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import type { Product } from '$lib/api';
 	import { cartStore } from '$lib/stores/cart.svelte';
-	import { authStore } from '$lib/stores/auth.svelte';
+	import { toast } from 'svelte-sonner';
 
 	let { product }: { product: Product } = $props();
 
 	let adding = $state(false);
 
 	async function addToCart() {
-		if (!authStore.authenticated) {
-			goto('/login');
-			return;
-		}
 		adding = true;
-		await cartStore.addItem(product.id);
+		await cartStore.addItem(product.id, 1, product);
+		toast.success(`${product.name} pridane do kosika`);
 		adding = false;
 	}
 </script>
 
 <div class="overflow-hidden rounded-2xl bg-white shadow-sm transition-all duration-300 hover:shadow-lg dark:bg-[#1c1c1e] dark:shadow-[#000]/20">
 	{#if product.imageUrl}
-		<img src={product.imageUrl} alt={product.name} class="h-48 w-full object-cover" />
+		<img src={product.imageUrl} alt={product.name} loading="lazy" class="h-48 w-full object-cover" />
 	{:else}
 		<div class="flex h-48 items-center justify-center bg-gray-100 dark:bg-[#2c2c2e]">
 			<span class="text-gray-400 dark:text-gray-500">Bez obrazka</span>

@@ -88,4 +88,11 @@ public class Product {
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    /**
+     * Verzia pre optimistické zamykanie - prevencia race conditions
+     * Pri súbežných objednávkach zabezpečí, že iba jedna prejde
+     */
+    @Version
+    private Long version;
 }

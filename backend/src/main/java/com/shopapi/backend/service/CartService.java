@@ -28,40 +28,31 @@ public class CartService {
 
     @Transactional
     public CartDTO getMyCart() {
-        User user = userService.getOrCreateCurrentUser();
-        Cart cart = getOrCreateCart(user);
+        var user = userService.getOrCreateCurrentUser();
+        var cart = getOrCreateCart(user);
         return CartDTO.from(cart);
     }
 
     @Transactional
     public CartDTO addItem(AddToCartRequest request) {
-        User user = userService.getOrCreateCurrentUser();
-        Cart cart = getOrCreateCart(user);
+        var user = userService.getOrCreateCurrentUser();
+        var cart = getOrCreateCart(user);
 
-        Product product = productRepository.findById(request.productId())
+        var product = productRepository.findById(request.productId())
                 .orElseThrow(() -> new ProductNotFoundException(request.productId()));
 
-        // Check stock
-        int requestedQty = request.quantity();
-        if (product.getStock() < requestedQty) {
-            throw new InsufficientStockException(product.getName(), product.getStock(), requestedQty);
-        }
+        var requestedQty = request.quantity();
+        validateStock(product, requestedQty);
 
-        // Check if item already in cart
-        CartItem existingItem = cart.getCartItems().stream()
-                .filter(item -> item.getProduct().getId().equals(product.getId()))
-                .findFirst()
-                .orElse(null);
+        var existingItem = findCartItem(cart, product.getId());
 
         if (existingItem != null) {
-            int newQuantity = existingItem.getQuantity() + requestedQty;
-            if (product.getStock() < newQuantity) {
-                throw new InsufficientStockException(product.getName(), product.getStock(), newQuantity);
-            }
+            var newQuantity = existingItem.getQuantity() + requestedQty;
+            validateStock(product, newQuantity);
             existingItem.setQuantity(newQuantity);
             cartItemRepository.save(existingItem);
         } else {
-            CartItem newItem = CartItem.builder()
+            var newItem = CartItem.builder()
                     .cart(cart)
                     .product(product)
                     .quantity(requestedQty)
@@ -75,20 +66,15 @@ public class CartService {
 
     @Transactional
     public CartDTO updateItemQuantity(Long itemId, UpdateCartItemRequest request) {
-        User user = userService.getOrCreateCurrentUser();
-        Cart cart = cartRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new CartNotFoundException("Cart not found"));
+        var user = userService.getOrCreateCurrentUser();
+        var cart = getCartOrThrow(user.getId());
 
-        CartItem item = cart.getCartItems().stream()
+        var item = cart.getCartItems().stream()
                 .filter(i -> i.getId().equals(itemId))
                 .findFirst()
                 .orElseThrow(() -> new CartNotFoundException("Cart item not found with id: " + itemId));
 
-        // Check stock
-        Product product = item.getProduct();
-        if (product.getStock() < request.quantity()) {
-            throw new InsufficientStockException(product.getName(), product.getStock(), request.quantity());
-        }
+        validateStock(item.getProduct(), request.quantity());
 
         item.setQuantity(request.quantity());
         cartItemRepository.save(item);
@@ -98,11 +84,10 @@ public class CartService {
 
     @Transactional
     public CartDTO removeItem(Long itemId) {
-        User user = userService.getOrCreateCurrentUser();
-        Cart cart = cartRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new CartNotFoundException("Cart not found"));
+        var user = userService.getOrCreateCurrentUser();
+        var cart = getCartOrThrow(user.getId());
 
-        boolean removed = cart.getCartItems().removeIf(item -> item.getId().equals(itemId));
+        var removed = cart.getCartItems().removeIf(item -> item.getId().equals(itemId));
         if (!removed) {
             throw new CartNotFoundException("Cart item not found with id: " + itemId);
         }
@@ -113,7 +98,7 @@ public class CartService {
 
     @Transactional
     public void clearCart() {
-        User user = userService.getOrCreateCurrentUser();
+        var user = userService.getOrCreateCurrentUser();
         cartRepository.findByUserId(user.getId())
                 .ifPresent(cart -> {
                     cart.getCartItems().clear();
@@ -123,11 +108,26 @@ public class CartService {
 
     private Cart getOrCreateCart(User user) {
         return cartRepository.findByUserId(user.getId())
-                .orElseGet(() -> {
-                    Cart newCart = Cart.builder()
-                            .user(user)
-                            .build();
-                    return cartRepository.save(newCart);
-                });
+                .orElseGet(() -> cartRepository.save(
+                        Cart.builder().user(user).build()
+                ));
+    }
+
+    private Cart getCartOrThrow(Long userId) {
+        return cartRepository.findByUserId(userId)
+                .orElseThrow(() -> new CartNotFoundException("Cart not found"));
+    }
+
+    private CartItem findCartItem(Cart cart, Long productId) {
+        return cart.getCartItems().stream()
+                .filter(item -> item.getProduct().getId().equals(productId))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private void validateStock(Product product, int quantity) {
+        if (product.getStock() < quantity) {
+            throw new InsufficientStockException(product.getName(), product.getStock(), quantity);
+        }
     }
 }

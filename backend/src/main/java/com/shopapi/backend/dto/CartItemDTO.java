@@ -13,13 +13,15 @@ public record CartItemDTO(
         BigDecimal subtotal
 ) {
     public static CartItemDTO from(CartItem item) {
-        BigDecimal subtotal = item.getProduct().getPrice()
+        var product = item.getProduct();
+        var subtotal = product.getPrice()
                 .multiply(BigDecimal.valueOf(item.getQuantity()));
+
         return new CartItemDTO(
                 item.getId(),
-                item.getProduct().getId(),
-                item.getProduct().getName(),
-                item.getProduct().getPrice(),
+                product.getId(),
+                product.getName(),
+                product.getPrice(),
                 item.getQuantity(),
                 subtotal
         );

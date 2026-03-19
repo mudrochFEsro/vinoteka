@@ -14,21 +14,54 @@ public record OrderDTO(
         OrderStatus status,
         BigDecimal totalPrice,
         List<OrderItemDTO> items,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        // Contact info
+        String firstName,
+        String lastName,
+        String phone,
+        // Address
+        String street,
+        String houseNumber,
+        String city,
+        String postalCode,
+        String country,
+        // Company
+        Boolean isCompany,
+        String companyName,
+        String ico,
+        String dic,
+        String icDph
 ) {
     public static OrderDTO from(Order order) {
-        List<OrderItemDTO> items = order.getOrderItems().stream()
+        var items = order.getOrderItems().stream()
                 .map(OrderItemDTO::from)
                 .toList();
 
+        var user = order.getUser();
+        var userId = user != null ? user.getId() : null;
+        var email = user != null ? user.getEmail() : order.getGuestEmail();
+
         return new OrderDTO(
                 order.getId(),
-                order.getUser().getId(),
-                order.getUser().getEmail(),
+                userId,
+                email,
                 order.getStatus(),
                 order.getTotalPrice(),
                 items,
-                order.getCreatedAt()
+                order.getCreatedAt(),
+                order.getFirstName(),
+                order.getLastName(),
+                order.getPhone(),
+                order.getStreet(),
+                order.getHouseNumber(),
+                order.getCity(),
+                order.getPostalCode(),
+                order.getCountry(),
+                order.getIsCompany(),
+                order.getCompanyName(),
+                order.getIco(),
+                order.getDic(),
+                order.getIcDph()
         );
     }
 }

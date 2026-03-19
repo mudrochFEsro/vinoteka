@@ -69,6 +69,11 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/files/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
 
+                // Guest orders (bez prihlásenia)
+                .requestMatchers(HttpMethod.POST, "/api/orders/guest").permitAll()
+                // Unified checkout (works for both auth and guest)
+                .requestMatchers(HttpMethod.POST, "/api/orders/checkout").permitAll()
+
                 // === ADMIN ONLY ENDPOINTY ===
                 // Len používateľ s rolou ADMIN môže:
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
@@ -107,10 +112,8 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         // Povolené origin-y (odkiaľ môžu prísť requesty)
-        configuration.setAllowedOrigins(List.of(
-            "http://localhost:5173",  // Vite dev server
-            "http://localhost:5174",  // Vite dev server (alternative port)
-            "http://localhost:3000"   // Production frontend
+        configuration.setAllowedOriginPatterns(List.of(
+            "http://localhost:*"  // All localhost ports for dev
         ));
 
         // Povolené HTTP metódy
