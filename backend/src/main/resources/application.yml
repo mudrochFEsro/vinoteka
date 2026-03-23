@@ -10,6 +10,9 @@ spring.servlet.multipart:
   max-request-size: 5MB
 
 spring:
+  threads:
+    virtual:
+      enabled: true
   datasource:
     url: jdbc:postgresql://localhost:5432/shopapi
     username: shopapi

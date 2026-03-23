@@ -43,24 +43,50 @@
 		CANCELLED: 'Zrusena'
 	};
 
-	onMount(async () => {
-		if (!authStore.authenticated || !authStore.admin) {
-			goto('/');
-			return;
-		}
+	onMount(() => {
+		// Wait for auth to initialize
+		const checkAuth = () => {
+			if (!authStore.initialized) {
+				setTimeout(checkAuth, 50);
+				return;
+			}
 
+			if (!authStore.authenticated || !authStore.admin) {
+				goto('/');
+				return;
+			}
+
+			loadData();
+		};
+		checkAuth();
+	});
+
+	async function loadData() {
 		try {
-			[products, categories, orders] = await Promise.all([
+			// Load independently so one failure doesn't block others
+			const [productsResult, categoriesResult, ordersResult] = await Promise.allSettled([
 				productsApi.getAll(),
 				categoriesApi.getAll(),
 				adminOrders.getAll()
 			]);
+
+			if (productsResult.status === 'fulfilled') {
+				products = productsResult.value;
+			}
+			if (categoriesResult.status === 'fulfilled') {
+				categories = categoriesResult.value;
+			}
+			if (ordersResult.status === 'fulfilled') {
+				orders = ordersResult.value;
+			} else {
+				console.error('Failed to load orders:', ordersResult.reason);
+			}
 		} catch (e) {
 			console.error('Failed to load admin data:', e);
 		} finally {
 			loading = false;
 		}
-	});
+	}
 
 	function editProduct(product: Product) {
 		editingProduct = product;
