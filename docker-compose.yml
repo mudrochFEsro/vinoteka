@@ -47,7 +47,10 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shopapi
       SPRING_DATASOURCE_USERNAME: shopapi
       SPRING_DATASOURCE_PASSWORD: shopapi
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8180/realms/shopapi
+      # issuer musí sedieť s tokenom z prehliadača (Keycloak beží na localhost:8180),
+      # ale JWKS backend načíta cez docker-internú sieť (keycloak:8180) — inak issuer mismatch → 401.
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8180/realms/shopapi
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8180/realms/shopapi/protocol/openid-connect/certs
     ports:
       - "8081:8081"
     depends_on:

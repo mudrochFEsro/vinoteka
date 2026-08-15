@@ -182,7 +182,8 @@
 			<div class="mt-8 border-t border-gray-200 pt-6 dark:border-[#3a3a3c]">
 				<p class="text-center text-xs text-gray-500 dark:text-gray-400">Testovacie ucty:</p>
 				<div class="mt-2 space-y-1 text-center text-xs text-gray-500 dark:text-gray-400">
-					<p><span class="font-medium">Admin:</span> admin@admin.sk / admin</p>
+					<p><span class="font-medium">Admin:</span> admin@example.com / admin</p>
+					<p><span class="font-medium">User:</span> testuser@example.com / testuser</p>
 				</div>
 			</div>
 		</div>
