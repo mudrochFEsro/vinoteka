@@ -5,7 +5,7 @@ Full-stack e-commerce application for a wine shop built with Spring Boot and Sve
 ## Tech Stack
 
 ### Backend
-- **Java 25** + **Spring Boot 3.5**
+- **Java 25** + **Spring Boot 4.0**
 - **PostgreSQL 16** - database
 - **Flyway** - database migrations
 - **Keycloak 25** - authentication (OAuth2/JWT)
