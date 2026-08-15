@@ -5,7 +5,7 @@ Full-stack e-commerce application for a wine shop built with Spring Boot and Sve
 ## Tech Stack
 
 ### Backend
-- **Java 21** + **Spring Boot 3.5**
+- **Java 25** + **Spring Boot 3.5**
 - **PostgreSQL 16** - database
 - **Flyway** - database migrations
 - **Keycloak 25** - authentication (OAuth2/JWT)
@@ -74,7 +74,7 @@ webshop/
 
 ### Prerequisites
 - Docker & Docker Compose
-- Java 21 (for local development)
+- Java 25 (for local development)
 - Node.js 20+ with pnpm
 
 ### 1. Start Infrastructure

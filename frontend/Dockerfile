@@ -1,5 +1,5 @@
 # Build stage
-FROM node:20 AS build
+FROM node:22 AS build
 WORKDIR /app
 
 # Install pnpm
@@ -18,7 +18,7 @@ COPY . .
 RUN pnpm build
 
 # Runtime stage
-FROM node:20-slim
+FROM node:22-slim
 WORKDIR /app
 
 # Install pnpm
